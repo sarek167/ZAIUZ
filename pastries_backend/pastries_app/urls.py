@@ -1,9 +1,10 @@
 from django.urls import path, include
-from .views import LoginView, LogoutView, PasswordChangeView, UserViewSet
+from .views import LoginView, LogoutView, PasswordChangeView, SensorViewSet, UserViewSet
 from rest_framework import routers
 
 router = routers.DefaultRouter()
 router.register(r'users', UserViewSet)
+router.register(r'sensors', SensorViewSet)
 
 
 urlpatterns = [

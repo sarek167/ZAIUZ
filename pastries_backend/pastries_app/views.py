@@ -11,8 +11,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User
-
-from .serializers import LoginSerializer, PasswordChangeSerializer, UserSerializer
+from .models import Sensor
+from .serializers import LoginSerializer, PasswordChangeSerializer, UserSerializer, SensorSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -101,3 +101,10 @@ class PasswordChangeView(APIView):
         user.save(update_fields=["password"])
         update_session_auth_hash(request._request, user)
         return Response(status=204)
+
+class SensorViewSet(viewsets.ModelViewSet):
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    queryset = Sensor.objects.all()
+    serializer_class = SensorSerializer
