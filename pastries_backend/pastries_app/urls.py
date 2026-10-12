@@ -1,11 +1,12 @@
 from django.urls import path, include
-from .views import LoginView, LogoutView, PasswordChangeView, SensorViewSet, UserViewSet
+from .views import LoginView, LogoutView, MeasurementViewSet, PasswordChangeView, SensorViewSet, SeriesViewSet, UserViewSet
 from rest_framework import routers
 
 router = routers.DefaultRouter()
 router.register(r'users', UserViewSet)
 router.register(r'sensors', SensorViewSet)
-
+router.register(r'series', SeriesViewSet)
+router.register(r'measurements', MeasurementViewSet)
 
 urlpatterns = [
     path("api/", include(router.urls)),

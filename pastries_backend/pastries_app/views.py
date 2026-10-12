@@ -1,15 +1,13 @@
-from django.contrib.auth import logout, update_session_auth_hash
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import viewsets
-from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import PermissionDenied, ValidationError
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User
-from .models import Sensor
-from .serializers import AccessTokenObtainSerializer, PasswordChangeSerializer, UserSerializer, SensorSerializer
+from .models import Sensor, Series, Measurement
+from .serializers import AccessTokenObtainSerializer, PasswordChangeSerializer, UserSerializer, SeriesSerializer, SensorSerializer, MeasurementSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -44,14 +42,26 @@ class PasswordChangeView(APIView):
         try:
             validate_password(new_password, user=user)
         except DjangoValidationError as exc:
-            raise ValidationError({"newPassword": exc.messages}) from exc
+            raise ValidationError({"new_password": exc.messages}) from exc
 
         user.set_password(new_password)
         user.save(update_fields=["password"])
         return Response(status=204)
 
+class SeriesViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    queryset = Series.objects.all()
+    serializer_class = SeriesSerializer
+
 class SensorViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     queryset = Sensor.objects.all()
     serializer_class = SensorSerializer
+
+class MeasurementViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    queryset = Measurement.objects.all()
+    serializer_class = MeasurementSerializer
