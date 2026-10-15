@@ -1,6 +1,7 @@
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import viewsets
+from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
@@ -8,16 +9,16 @@ from rest_framework.views import APIView
 from django.contrib.auth.models import User
 from .models import Sensor, Series, Measurement
 from .serializers import AccessTokenObtainSerializer, PasswordChangeSerializer, UserSerializer, SeriesSerializer, SensorSerializer, MeasurementSerializer
+from .mixins import LocationHeaderMixin
 
-
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(LocationHeaderMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
 
-class LoginView(APIView):
+class LoginView(TokenObtainPairView):
     permission_classes = [AllowAny]
     serializer_class = AccessTokenObtainSerializer
 
@@ -48,19 +49,19 @@ class PasswordChangeView(APIView):
         user.save(update_fields=["password"])
         return Response(status=204)
 
-class SeriesViewSet(viewsets.ModelViewSet):
+class SeriesViewSet(LocationHeaderMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     queryset = Series.objects.all()
     serializer_class = SeriesSerializer
 
-class SensorViewSet(viewsets.ModelViewSet):
+class SensorViewSet(LocationHeaderMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     queryset = Sensor.objects.all()
     serializer_class = SensorSerializer
 
-class MeasurementViewSet(viewsets.ModelViewSet):
+class MeasurementViewSet(LocationHeaderMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     queryset = Measurement.objects.all()
