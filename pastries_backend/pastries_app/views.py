@@ -10,6 +10,8 @@ from django.contrib.auth.models import User
 from .models import Sensor, Series, Measurement
 from .serializers import AccessTokenObtainSerializer, PasswordChangeSerializer, UserSerializer, SeriesSerializer, SensorSerializer, MeasurementSerializer
 from .mixins import LocationHeaderMixin
+import hashlib
+import secrets
 
 class UserViewSet(LocationHeaderMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -60,6 +62,22 @@ class SensorViewSet(LocationHeaderMixin, viewsets.ModelViewSet):
 
     queryset = Sensor.objects.all()
     serializer_class = SensorSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        api_key = secrets.token_urlsafe(32)
+        sensor = serializer.save(
+            api_key_hash = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+        )
+        response_data = dict(self.get_serializer(sensor).data)
+        response_data["apiKey"] = api_key
+        return Response(
+            response_data, 
+            status=201, 
+            headers=self.get_success_headers(response_data)
+        )
 
 class MeasurementViewSet(LocationHeaderMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]

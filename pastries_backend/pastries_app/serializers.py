@@ -46,11 +46,12 @@ class SeriesSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'minValue', 'maxValue', 'color']
 
 class SensorSerializer(serializers.ModelSerializer):
-    createdAt = serializers.DateTimeField(source='created_at')
     seriesId = serializers.PrimaryKeyRelatedField(source='series', queryset=Series.objects.all())
+    apiKey = serializers.CharField(source='api_key_hash', read_only=True)
+
     class Meta:
         model = Sensor
-        fields = ['id', 'name', 'createdAt', 'seriesId']
+        fields = ['id', 'name', 'seriesId', 'apiKey']
 
 class MeasurementSerializer(serializers.ModelSerializer):
     seriesId = serializers.PrimaryKeyRelatedField(source='series', queryset=Series.objects.all())

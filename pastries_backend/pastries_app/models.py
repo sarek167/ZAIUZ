@@ -11,7 +11,7 @@ class Series(models.Model):
         return f"{self.name}"
 
 class Sensor(models.Model):
-    name = models.CharField(max_length=255, verbose_name="Sensor's name")
+    name = models.CharField(max_length=100, verbose_name="Sensor's name")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Creation date")
     api_key_hash = models.CharField(max_length=255, verbose_name="API Key Hash")
 
