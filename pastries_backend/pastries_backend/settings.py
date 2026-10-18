@@ -40,14 +40,17 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
+    "rest_framework.authtoken",
     "pastries_app",
 ]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        "pastries_app.authentication.ExpiringTokenAuthentication",
     ],
 }
+
+AUTH_TOKEN_LIFETIME = timedelta(minutes=30)
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),

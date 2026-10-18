@@ -1,14 +1,14 @@
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import viewsets
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User
 from .models import Sensor, Series, Measurement
-from .serializers import AccessTokenObtainSerializer, PasswordChangeSerializer, UserSerializer, SeriesSerializer, SensorSerializer, MeasurementSerializer
+from .serializers import AuthTokenObtainSerializer, PasswordChangeSerializer, UserSerializer, SeriesSerializer, SensorSerializer, MeasurementSerializer
 from .mixins import LocationHeaderMixin
 import hashlib
 import secrets
@@ -19,15 +19,34 @@ class UserViewSet(LocationHeaderMixin, viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-
-class LoginView(TokenObtainPairView):
+class HealthViewSet(APIView):
     permission_classes = [AllowAny]
-    serializer_class = AccessTokenObtainSerializer
+
+    def get(self, request):
+        return Response(
+            status=200, 
+            data={
+                "status": "ok"
+            }
+        )
+
+class LoginView(ObtainAuthToken):
+    permission_classes = [AllowAny]
+    serializer_class = AuthTokenObtainSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(
+            data=request.data,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data)
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
-    # TODO: Dodać blokowanie tokenu
+    
     def post(self, request):
+        request.user.auth_token.delete()
         return Response(status=204)
 
 class PasswordChangeView(APIView):
@@ -82,5 +101,5 @@ class SensorViewSet(LocationHeaderMixin, viewsets.ModelViewSet):
 class MeasurementViewSet(LocationHeaderMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
-    queryset = Measurement.objects.all()
+    queryset = Measurement.objects.all().order_by('timestamp')
     serializer_class = MeasurementSerializer

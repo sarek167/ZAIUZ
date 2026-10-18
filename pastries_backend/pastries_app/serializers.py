@@ -1,8 +1,9 @@
 from rest_framework import serializers
+from django.conf import settings
+from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from rest_framework_simplejwt.serializers import TokenObtainSerializer
-from rest_framework_simplejwt.tokens import AccessToken
-from rest_framework_simplejwt.settings import api_settings
+from django.utils import timezone
+from rest_framework.authtoken.models import Token
 
 from .models import Sensor, Series, Measurement
 
@@ -12,16 +13,36 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
         model = User
         fields = ['id', 'username', 'email']
 
+class AuthTokenObtainSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(
+        style={"input_type": "password"},
+        trim_whitespace=False,
+        write_only=True,
+    )
 
-class AccessTokenObtainSerializer(TokenObtainSerializer):
     def validate(self, attrs):
-        data = super().validate(attrs)
-        token = AccessToken.for_user(self.user)
+        user = authenticate(
+            request=self.context.get("request"),
+            username=attrs["username"],
+            password=attrs["password"],
+        )
+        if user is None or not user.is_active:
+            raise serializers.ValidationError(
+                "Unable to log in with the provided credentials.",
+                code="authorization",
+            )
 
-        data["accessToken"] = str(token)
-        data["tokenType"] = "Bearer"
-        data["expiresIn"] = int(api_settings.ACCESS_TOKEN_LIFETIME.total_seconds())
-        return data
+        token, _ = Token.objects.get_or_create(user=user)
+        if token.created + settings.AUTH_TOKEN_LIFETIME <= timezone.now():
+            token.delete()
+            token = Token.objects.create(user=user)
+
+        return {
+            "accessToken": token.key,
+            "tokenType": "Bearer",
+            "expiresIn": int(settings.AUTH_TOKEN_LIFETIME.total_seconds()),
+        }
 
 class PasswordChangeSerializer(serializers.Serializer):
     currentPassword = serializers.CharField(
@@ -47,11 +68,10 @@ class SeriesSerializer(serializers.ModelSerializer):
 
 class SensorSerializer(serializers.ModelSerializer):
     seriesId = serializers.PrimaryKeyRelatedField(source='series', queryset=Series.objects.all())
-    apiKey = serializers.CharField(source='api_key_hash', read_only=True)
 
     class Meta:
         model = Sensor
-        fields = ['id', 'name', 'seriesId', 'apiKey']
+        fields = ['id', 'name', 'seriesId']
 
 class MeasurementSerializer(serializers.ModelSerializer):
     seriesId = serializers.PrimaryKeyRelatedField(source='series', queryset=Series.objects.all())
