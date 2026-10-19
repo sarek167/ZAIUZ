@@ -4,11 +4,12 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, mixins
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.fields import DateTimeField
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User
-from .filters import MeasurementFilter
+from .filters import MeasurementFilter, MeasurementOrderingFilter
 from .models import Sensor, Series, Measurement
 from .serializers import AuthTokenObtainSerializer, MeasurementCreateSerializer, PasswordChangeSerializer, UserSerializer, SeriesSerializer, SensorSerializer, MeasurementSerializer
 from .mixins import LocationHeaderMixin
@@ -110,9 +111,28 @@ class MeasurementViewSet(
     ):
     permission_classes = [AllowAny]
 
-    queryset = Measurement.objects.all().order_by('timestamp')
-    filter_backends = [DjangoFilterBackend]
+    queryset = Measurement.objects.all()
+    filter_backends = [DjangoFilterBackend, MeasurementOrderingFilter]
     filterset_class = MeasurementFilter
+    ordering_fields = ["timestamp"]
+    ordering = ["timestamp"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        date_time_field = DateTimeField()
+        start = self.request.query_params.get("from")
+        end = self.request.query_params.get("to")
+
+        if start is not None:
+            queryset = queryset.filter(
+                timestamp__gte=date_time_field.run_validation(start)
+            )
+        if end is not None:
+            queryset = queryset.filter(
+                timestamp__lte=date_time_field.run_validation(end)
+            )
+
+        return queryset
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -140,4 +160,3 @@ class MeasurementViewSet(
             status=201, 
             headers=headers
         )
-

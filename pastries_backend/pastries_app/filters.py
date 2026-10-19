@@ -1,10 +1,16 @@
 import django_filters
+from rest_framework.filters import OrderingFilter
 from .models import Measurement
 
-class MeasurementFilter(django_filters.FilterSet):
-    start_time = django_filters.DateTimeFilter(field_name="timestamp", lookup_expr="gte")
-    end_time = django_filters.DateTimeFilter(field_name="timestamp", lookup_expr="lte")
 
+class MeasurementOrderingFilter(OrderingFilter):
+    ordering_param = "sort"
+
+class NumberInFilter(django_filters.BaseInFilter, django_filters.NumberFilter):
+    pass
+
+class MeasurementFilter(django_filters.FilterSet):
+    series = NumberInFilter(field_name="series__id", lookup_expr="in")
     class Meta:
         model = Measurement
-        fields = ["series", "start_time", "end_time"]
+        fields = ["series"]
