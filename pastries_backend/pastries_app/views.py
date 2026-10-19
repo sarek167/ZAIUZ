@@ -1,5 +1,6 @@
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -7,6 +8,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticate
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User
+from .filters import MeasurementFilter
 from .models import Sensor, Series, Measurement
 from .serializers import AuthTokenObtainSerializer, PasswordChangeSerializer, UserSerializer, SeriesSerializer, SensorSerializer, MeasurementSerializer
 from .mixins import LocationHeaderMixin
@@ -103,3 +105,6 @@ class MeasurementViewSet(LocationHeaderMixin, viewsets.ModelViewSet):
 
     queryset = Measurement.objects.all().order_by('timestamp')
     serializer_class = MeasurementSerializer
+
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = MeasurementFilter
