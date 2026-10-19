@@ -1,7 +1,7 @@
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets
+from rest_framework import viewsets, mixins
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
@@ -10,10 +10,11 @@ from rest_framework.views import APIView
 from django.contrib.auth.models import User
 from .filters import MeasurementFilter
 from .models import Sensor, Series, Measurement
-from .serializers import AuthTokenObtainSerializer, PasswordChangeSerializer, UserSerializer, SeriesSerializer, SensorSerializer, MeasurementSerializer
+from .serializers import AuthTokenObtainSerializer, MeasurementCreateSerializer, PasswordChangeSerializer, UserSerializer, SeriesSerializer, SensorSerializer, MeasurementSerializer
 from .mixins import LocationHeaderMixin
 import hashlib
 import secrets
+from .authentication import SensorKeyAuthentication
 
 class UserViewSet(LocationHeaderMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -100,11 +101,43 @@ class SensorViewSet(LocationHeaderMixin, viewsets.ModelViewSet):
             headers=self.get_success_headers(response_data)
         )
 
-class MeasurementViewSet(LocationHeaderMixin, viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticatedOrReadOnly]
+class MeasurementViewSet(
+    LocationHeaderMixin, 
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet
+    ):
+    permission_classes = [AllowAny]
 
     queryset = Measurement.objects.all().order_by('timestamp')
-    serializer_class = MeasurementSerializer
-
     filter_backends = [DjangoFilterBackend]
     filterset_class = MeasurementFilter
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return MeasurementCreateSerializer
+        return MeasurementSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        if self.action == "create":
+            context["sensor"] = SensorKeyAuthentication().get_authenticated_sensor(self.request)
+        return context
+
+    def create(self, request, *args, **kwargs):
+        input_serializer = self.get_serializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+        measurement = input_serializer.save()
+
+        output_serializer = MeasurementSerializer(
+            measurement,
+            context=self.get_serializer_context()
+        )
+        headers = self.get_success_headers(output_serializer.data)
+        return Response(
+            output_serializer.data, 
+            status=201, 
+            headers=headers
+        )
+

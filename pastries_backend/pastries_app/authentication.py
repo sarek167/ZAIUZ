@@ -1,7 +1,9 @@
+import hashlib
 from django.conf import settings
 from django.utils import timezone
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.exceptions import AuthenticationFailed
+from .models import Sensor
 
 
 class ExpiringTokenAuthentication(TokenAuthentication):
@@ -13,3 +15,16 @@ class ExpiringTokenAuthentication(TokenAuthentication):
             token.delete()
             raise AuthenticationFailed("Token has expired.")
         return user, token
+
+class SensorKeyAuthentication():
+    def get_authenticated_sensor(self, request):
+        api_key = request.headers.get("X-API-KEY")
+        if not api_key:
+            raise AuthenticationFailed("API key is missing.")
+
+        try:
+            sensor = Sensor.objects.get(api_key_hash=hashlib.sha256(api_key.encode()).hexdigest())
+        except Sensor.DoesNotExist:
+            raise AuthenticationFailed("Invalid API key.")
+
+        return sensor
