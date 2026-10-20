@@ -81,7 +81,7 @@ class SeriesViewSet(LocationHeaderMixin, viewsets.ModelViewSet):
     serializer_class = SeriesSerializer
 
 class SensorViewSet(LocationHeaderMixin, viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticated]
 
     queryset = Sensor.objects.all()
     serializer_class = SensorSerializer
