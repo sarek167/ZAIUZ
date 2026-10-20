@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.authtoken.models import Token
-
+from .exceptions import SeriesRangeConflict
 from .models import Sensor, Series, Measurement
 
 
@@ -66,6 +66,25 @@ class SeriesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Series
         fields = ['id', 'name', 'minValue', 'maxValue', 'color']
+
+    def validate(self, attrs):
+        min_value = attrs.get(
+            'min_value',
+            self.instance.min_value if self.instance else None
+        )
+        max_value = attrs.get(
+            'max_value',
+            self.instance.max_value if self.instance else None
+        )
+        if min_value is not None and max_value is not None and min_value > max_value:
+            raise SeriesRangeConflict("The series range cannot exclude existing measurements.")
+        if self.instance:
+            measurements = Measurement.objects.filter(series=self.instance)
+            if (measurements.filter(value__lt=min_value).exists() or
+                measurements.filter(value__gt=max_value).exists()):
+                raise SeriesRangeConflict("The series range cannot exclude existing measurements.")
+        return attrs
+
 
 class SensorSerializer(serializers.ModelSerializer):
     seriesId = serializers.PrimaryKeyRelatedField(source='series', queryset=Series.objects.all())
