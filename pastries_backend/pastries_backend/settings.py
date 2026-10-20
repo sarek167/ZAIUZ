@@ -49,6 +49,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         "pastries_app.authentication.ExpiringTokenAuthentication",
     ],
+    "EXCEPTION_HANDLER": "pastries_app.exception_handlers.problem_exception_handler",
 }
 
 AUTH_TOKEN_LIFETIME = timedelta(minutes=30)
