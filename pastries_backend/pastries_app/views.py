@@ -16,6 +16,7 @@ from .mixins import LocationHeaderMixin
 import hashlib
 import secrets
 from .authentication import SensorKeyAuthentication
+from .exceptions import InvalidDateTimeFormat
 
 class UserViewSet(LocationHeaderMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -123,14 +124,13 @@ class MeasurementViewSet(
         start = self.request.query_params.get("from")
         end = self.request.query_params.get("to")
 
-        if start is not None:
-            queryset = queryset.filter(
-                timestamp__gte=date_time_field.run_validation(start)
-            )
-        if end is not None:
-            queryset = queryset.filter(
-                timestamp__lte=date_time_field.run_validation(end)
-            )
+        try:
+            parsed_start = date_time_field.run_validation(start) if start else None
+            parsed_end = date_time_field.run_validation(end) if end else None
+        except ValidationError as exc:
+            raise InvalidDateTimeFormat() from exc
+        queryset = queryset.filter(timestamp__gte=parsed_start) if parsed_start else queryset
+        queryset = queryset.filter(timestamp__lte=parsed_end) if parsed_end else queryset
 
         return queryset
 

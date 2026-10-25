@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.authtoken.models import Token
-from .exceptions import SeriesRangeConflict
+from .exceptions import SeriesNotFound, SeriesRangeConflict, SeriesRangeInvalid, MeasurementValueOutOfRange, MeasurementTimestampError, WrongCredentials
 from .models import Sensor, Series, Measurement
 
 
@@ -29,10 +29,7 @@ class AuthTokenObtainSerializer(serializers.Serializer):
             password=attrs["password"],
         )
         if user is None or not user.is_active:
-            raise serializers.ValidationError(
-                "Unable to log in with the provided credentials.",
-                code="authorization",
-            )
+            raise WrongCredentials()
 
         token, _ = Token.objects.get_or_create(user=user)
         if token.created + settings.AUTH_TOKEN_LIFETIME <= timezone.now():
@@ -76,8 +73,8 @@ class SeriesSerializer(serializers.ModelSerializer):
             'max_value',
             self.instance.max_value if self.instance else None
         )
-        if min_value is not None and max_value is not None and min_value > max_value:
-            raise SeriesRangeConflict("The series range cannot exclude existing measurements.")
+        if min_value is not None and max_value is not None and min_value >= max_value:
+            raise SeriesRangeInvalid("The series range cannot have min_value greater than or equal to max_value.")
         if self.instance:
             measurements = Measurement.objects.filter(series=self.instance)
             if (measurements.filter(value__lt=min_value).exists() or
@@ -85,16 +82,26 @@ class SeriesSerializer(serializers.ModelSerializer):
                 raise SeriesRangeConflict("The series range cannot exclude existing measurements.")
         return attrs
 
+class SeriesPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
+    def to_internal_value(self, data):
+        if self.pk_field is not None:
+            data = self.pk_field.to_internal_value(data)
+        try:
+            return self.get_queryset().get(pk=data)
+        except Series.DoesNotExist:
+            raise SeriesNotFound("The specified series was not found.")
+        except (TypeError, ValueError):
+            self.fail('incorrect_type', data_type=type(data).__name__)
 
 class SensorSerializer(serializers.ModelSerializer):
-    seriesId = serializers.PrimaryKeyRelatedField(source='series', queryset=Series.objects.all())
+    seriesId = SeriesPrimaryKeyRelatedField(source='series', queryset=Series.objects.all())
 
     class Meta:
         model = Sensor
         fields = ['id', 'name', 'seriesId']
 
 class MeasurementSerializer(serializers.ModelSerializer):
-    seriesId = serializers.PrimaryKeyRelatedField(source='series', queryset=Series.objects.all())
+    seriesId = SeriesPrimaryKeyRelatedField(source='series', queryset=Series.objects.all())
     sensorId = serializers.PrimaryKeyRelatedField(source='sensor', queryset=Sensor.objects.all(), allow_null=True, required=False)
     
     class Meta:
@@ -114,12 +121,12 @@ class MeasurementCreateSerializer(serializers.ModelSerializer):
         value = attrs.get('value')
         if series and value is not None:
             if series.min_value is not None and value < series.min_value:
-                raise serializers.ValidationError(f"Value {value} is below the minimum allowed for this series ({series.min_value}).")
+                raise MeasurementValueOutOfRange(f"Value {value} is below the minimum allowed for this series ({series.min_value}).")
             if series.max_value is not None and value > series.max_value:
-                raise serializers.ValidationError(f"Value {value} is above the maximum allowed for this series ({series.max_value}).")
+                raise MeasurementValueOutOfRange(f"Value {value} is above the maximum allowed for this series ({series.max_value}).")
         
         if attrs.get('timestamp') and attrs['timestamp'] > timezone.now() + timedelta(minutes=5):
-            raise serializers.ValidationError("Timestamp cannot be in the future.")
+            raise MeasurementTimestampError("Timestamp cannot be in the future.")
         return attrs
 
     def create(self, validated_data):
