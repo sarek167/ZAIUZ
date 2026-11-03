@@ -75,7 +75,7 @@ class DataGenerator:
             'Content-Type': 'application/json',
             "X-API-KEY": self.sensor_key
             }
-        response = requests.post(self.api_address, json={"timestamp": measurement.get("timestamp"), "value": measurement.get("value")}, headers=headers)
+        response = requests.post(f"{self.api_address}/api/measurements", json={"timestamp": measurement.get("timestamp"), "value": measurement.get("value")}, headers=headers)
         return response.status_code, response.text
 
 if __name__ == "__main__":
