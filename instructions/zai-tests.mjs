@@ -329,6 +329,7 @@ test('kontrakt', 'POST /api/auth/logout unieważnia token', async (ctx) => {
   expectStatus(login, 200, 'Logowanie');
   const t = login.json.accessToken;
   expectStatus(await http(ctx, 'POST', '/api/auth/logout', { token: t }), 204, 'Wylogowanie');
+  ctx.token = null;
   const after = await http(ctx, 'POST', '/api/series', { body: seriesInput(), token: t });
   if (after.status === 201) ctx.cleanup.series.add(after.json?.id);
   expectStatus(after, 401, 'Użycie tokenu po wylogowaniu');

@@ -4,3 +4,6 @@ djangorestframework_simplejwt
 django-filter
 argon2-cffi
 django-cors-headers
+gunicorn
+mssql-django
+pyodbc
