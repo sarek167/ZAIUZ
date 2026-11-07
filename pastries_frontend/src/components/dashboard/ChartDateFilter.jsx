@@ -1,16 +1,9 @@
 import { useState } from 'react';
 import {
-  getDateTimeTimestamp,
-  isValidPolishDate,
-  isValidTime,
+  INITIAL_DATE_FILTER_DRAFT,
+  validateDateFilterDraft,
 } from './chartUtils';
-
-const INITIAL_DRAFT = {
-  fromDate: '',
-  fromTime: '00:00',
-  toDate: '',
-  toTime: '23:59',
-};
+import { SeriesSelector } from './SeriesSelector';
 
 const DateTimeFieldset = ({
   label,
@@ -60,9 +53,17 @@ const DateTimeFieldset = ({
   </fieldset>
 );
 
-export const ChartDateFilter = ({ onApply, onReset }) => {
-  const [draft, setDraft] = useState(INITIAL_DRAFT);
+export const ChartDateFilter = ({
+  series,
+  selectedSeriesIds,
+  onApply,
+  onReset,
+}) => {
+  const [draft, setDraft] = useState(INITIAL_DATE_FILTER_DRAFT);
+  const [draftSelectedSeriesIds, setDraftSelectedSeriesIds] =
+    useState(selectedSeriesIds);
   const [dateError, setDateError] = useState('');
+  const allSeriesIds = series.map((item) => String(item.id));
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -71,48 +72,40 @@ export const ChartDateFilter = ({ onApply, onReset }) => {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-
-    if (
-      (draft.fromDate && !isValidPolishDate(draft.fromDate)) ||
-      (draft.toDate && !isValidPolishDate(draft.toDate))
-    ) {
-      setDateError('Wpisz datę w formacie DD.MM.RRRR.');
-      return;
-    }
-
-    if (
-      (draft.fromDate && !isValidTime(draft.fromTime)) ||
-      (draft.toDate && !isValidTime(draft.toTime))
-    ) {
-      setDateError('Wpisz godzinę w formacie 24-godzinnym, np. 09:30.');
-      return;
-    }
-
-    const fromTimestamp = getDateTimeTimestamp(draft.fromDate, draft.fromTime);
-    const toTimestamp = getDateTimeTimestamp(
-      draft.toDate,
-      draft.toTime,
-      true,
-    );
-    if (
-      fromTimestamp !== null &&
-      toTimestamp !== null &&
-      fromTimestamp > toTimestamp
-    ) {
-      setDateError(
-        'Data i godzina początkowa nie mogą być późniejsze niż końcowe.',
-      );
+    const validation = validateDateFilterDraft(draft);
+    if (validation.error) {
+      setDateError(validation.error);
       return;
     }
 
     setDateError('');
-    onApply({ fromTimestamp, toTimestamp });
+    onApply({
+      dateRange: validation.dateRange,
+      selectedSeriesIds: draftSelectedSeriesIds,
+    });
   };
 
   const handleReset = () => {
-    setDraft(INITIAL_DRAFT);
+    setDraft(INITIAL_DATE_FILTER_DRAFT);
+    setDraftSelectedSeriesIds(allSeriesIds);
     setDateError('');
     onReset();
+  };
+
+  const handleSeriesToggle = (seriesId) => {
+    setDraftSelectedSeriesIds((currentIds) =>
+      currentIds.includes(seriesId)
+        ? currentIds.filter((id) => id !== seriesId)
+        : [...currentIds, seriesId],
+    );
+  };
+
+  const handleSelectAllSeries = () => {
+    setDraftSelectedSeriesIds(allSeriesIds);
+  };
+
+  const handleClearAllSeries = () => {
+    setDraftSelectedSeriesIds([]);
   };
 
   return (
@@ -140,6 +133,15 @@ export const ChartDateFilter = ({ onApply, onReset }) => {
           dateError={dateError}
           onChange={handleChange}
         />
+        {series.length > 0 && (
+          <SeriesSelector
+            series={series}
+            selectedSeriesIds={draftSelectedSeriesIds}
+            onToggle={handleSeriesToggle}
+            onSelectAll={handleSelectAllSeries}
+            onClearAll={handleClearAllSeries}
+          />
+        )}
         <button type="submit">Filtruj</button>
         <button
           type="button"
