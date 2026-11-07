@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
-export const LoginForm = () => {
+export const LoginForm = ({ onSuccess }) => {
   const { login, authError } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -21,7 +21,9 @@ export const LoginForm = () => {
     const result = await login(username, password);
     setIsSubmitting(false);
 
-    if (!result.success) {
+    if (result.success) {
+      onSuccess?.();
+    } else {
       setLocalError(result.error);
     }
   };
@@ -59,7 +61,7 @@ export const LoginForm = () => {
       </div>
 
       <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Logowanie...' : 'Zaloguj się'}
+        {isSubmitting ? 'Logowanie...' : 'Zatwierdź'}
       </button>
     </form>
   );
