@@ -1,5 +1,6 @@
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import connection
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, mixins
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -28,6 +29,9 @@ class HealthViewSet(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+
         return Response(
             status=200, 
             data={
