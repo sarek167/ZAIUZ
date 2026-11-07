@@ -28,8 +28,7 @@ SECRET_KEY = "django-insecure-q0wt*yds$#^s-_!kh3)ococr6z#e*frwktiu46_^$o#k_!%2se
 DEBUG = True
 
 ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,10.0.2.2,::1").split(",") if h.strip()]
-CORS_ALLOWED_ORIGINS = ['http://localhost:5173']
-
+CORS_ALLOWED_ORIGINS = [h.strip() for h in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173").split(",") if h.strip()]
 # Application definition
 
 INSTALLED_APPS = [
