@@ -11,6 +11,7 @@ import {
 import { ChartDateFilter } from './ChartDateFilter';
 import { ChartLegend } from './ChartLegend';
 import { MeasurementDot } from './MeasurementDot';
+import { MeasurementTable } from './MeasurementTable';
 import { MeasurementTooltip } from './MeasurementTooltip';
 import {
   formatTimestamp,
@@ -162,6 +163,13 @@ export const Chart = ({
       )}
       {filteredMeasurements.length > 0 && (
         <ChartLegend series={chartSeries} lineStyles={LINE_STYLES} />
+      )}
+      {filteredMeasurements.length > 0 && (
+        <MeasurementTable
+          measurements={chartData}
+          selectedMeasurementId={activeMeasurementId}
+          onMeasurementClick={handleMeasurementClick}
+        />
       )}
     </div>
   );
