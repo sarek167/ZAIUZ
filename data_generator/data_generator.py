@@ -41,6 +41,7 @@ class DataGenerator:
         current_time = self.start_time
         for _ in range(self.measurements_num):
             value = random.random() * (self.range_end - self.range_start) + self.range_start
+            value = round(value, 2)
             status_code, response_text = self._send_single_measurement({"timestamp": current_time.isoformat(), "value": value})
             if status_code != 201:
                 print(f"Failed to send measurement: {response_text}")

@@ -52,21 +52,23 @@ export const AuthProvider = ({children}) => {
     };
 
     const logout = async () => {
+        let result = {success: true};
         try {
-            await apiClient.post('api/auth/logout');
+            await apiClient.post('/api/auth/logout');
         } catch (err) {
-            console.error('Error while logging out');
+            result = {success: false, error: getErrorMessage(err)};
         } finally {
             localStorage.removeItem('token');
             setToken(null);
             setIsAuthenticated(false);
         }
+        return result;
     };
     const changePassword = async (oldPassword, newPassword) => {
         try {
-            await apiClient.post('api/auth/password', {
-                old_password: oldPassword,
-                new_password: newPassword
+            await apiClient.put('/api/auth/password', {
+                currentPassword: oldPassword,
+                newPassword,
             });
             return {success: true};
         } catch (err) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { apiClient, getErrorMessage } from './api/client'
 import './App.css'
 import { Chart } from './components/dashboard/Chart'
@@ -11,6 +11,29 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [loadError, setLoadError] = useState('')
+
+  const refreshSeries = useCallback(async () => {
+    const response = await apiClient.get('/api/series')
+    const nextSeries = response.data
+    const previousIds = series.map((item) => String(item.id))
+    const nextIds = nextSeries.map((item) => String(item.id))
+
+    setSeries(nextSeries)
+    setAppliedFilters((current) => {
+      const previousSelection = current?.selectedSeriesIds ?? []
+      const hadAllSeriesSelected =
+        previousIds.length === 0 ||
+        (previousSelection.length === previousIds.length &&
+          previousIds.every((id) => previousSelection.includes(id)))
+      return {
+        dateRange: current?.dateRange ?? null,
+        selectedSeriesIds: hadAllSeriesSelected
+          ? nextIds
+          : previousSelection.filter((id) => nextIds.includes(id)),
+      }
+    })
+    setLoadError('')
+  }, [series])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -99,7 +122,7 @@ function App() {
 
   return (
     <div>
-      <NavBar />
+      <NavBar series={series} onSeriesChanged={refreshSeries} />
       <main>
         <h1>Pomiar sprzedaży pączków</h1>
         {isLoading ? (
