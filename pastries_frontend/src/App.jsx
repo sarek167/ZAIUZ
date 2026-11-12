@@ -3,8 +3,10 @@ import { apiClient, getErrorMessage } from './api/client'
 import './App.css'
 import { Chart } from './components/dashboard/Chart'
 import { NavBar } from './components/layout/NavBar'
+import { useAuth } from './context/AuthContext'
 
 function App() {
+  const { loading: authLoading } = useAuth()
   const [measurements, setMeasurements] = useState([])
   const [series, setSeries] = useState([])
   const [appliedFilters, setAppliedFilters] = useState(null)
@@ -36,6 +38,8 @@ function App() {
   }, [series])
 
   useEffect(() => {
+    if (authLoading) return undefined
+
     const controller = new AbortController()
 
     const loadSeries = async () => {
@@ -63,10 +67,10 @@ function App() {
 
     loadSeries()
     return () => controller.abort()
-  }, [])
+  }, [authLoading])
 
   useEffect(() => {
-    if (appliedFilters === null) return undefined
+    if (authLoading || appliedFilters === null) return undefined
 
     const controller = new AbortController()
     const { dateRange, selectedSeriesIds } = appliedFilters
@@ -112,7 +116,7 @@ function App() {
 
     loadMeasurements()
     return () => controller.abort()
-  }, [appliedFilters, series])
+  }, [appliedFilters, series, authLoading])
 
   const handleFiltersApply = (nextFilters) => {
     setAppliedFilters(nextFilters)
