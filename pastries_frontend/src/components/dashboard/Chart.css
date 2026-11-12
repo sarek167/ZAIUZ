@@ -397,3 +397,48 @@
     margin: 0;
   }
 }
+
+@media print {
+  .chart-date-filters,
+  .chart-series-selector,
+  .chart-date-error {
+    display: none !important;
+  }
+
+  .measurement-chart {
+    height: 320px;
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .measurement-chart-content {
+    width: 100%;
+    min-width: 0;
+    height: 320px;
+  }
+
+  .measurement-table-container {
+    max-height: none;
+    overflow: visible;
+    border: 0;
+  }
+
+  .measurement-table th {
+    position: static;
+  }
+
+  .measurement-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .measurement-table-select {
+    margin: 0;
+    padding: 0; 
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-decoration: none;
+  }
+}
